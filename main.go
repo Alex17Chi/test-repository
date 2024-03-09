@@ -2,6 +2,7 @@ package main
 
 import (
 	"bufio"
+	"errors"
 	"fmt"
 	"os"
 	"strconv"
@@ -9,17 +10,15 @@ import (
 )
 
 var roman_mode bool
-var message, result string = "", ""
+var result string = ""
 
 // проверка на содержание недопустимых символов входных данных
-func valid_chars(str string) bool {
+func valid_chars(str string) {
 	for k := 0; k < len(str); k++ {
 		if strings.IndexByte("0123456789+-*/IVXLCDM", str[k]) == -1 {
-			message = "uncorrect symbol"
-			return false
+			panic(errors.New("введены некорректные символы"))
 		}
 	}
-	return true
 }
 
 // проверяем, римские или арабские
@@ -99,87 +98,87 @@ func main() {
 		fmt.Println("Введите операцию")
 		text, _ := reader.ReadString('\n') //ждет ввода данных в формате строки
 		text = strings.TrimSpace(text)     //очищает все пустоты
-		if valid_chars(text) {
+		valid_chars(text)
 
-			//ищем операцию
-			oper_count := 0
-			for i := 0; i < len(text); i++ {
-				oper_count++
-				switch text[i] {
-				case '+':
-					oper = "+"
-				case '-':
-					oper = "-"
-				case '*':
-					oper = "*"
-				case '/':
-					oper = "/"
-				default:
-					oper_count--
-				}
+		//ищем операцию
+		oper_count := 0
+		for i := 0; i < len(text); i++ {
+			oper_count++
+			switch text[i] {
+			case '+':
+				oper = "+"
+			case '-':
+				oper = "-"
+			case '*':
+				oper = "*"
+			case '/':
+				oper = "/"
+			default:
+				oper_count--
 			}
-
-			// если нашли единственную операцию, то делим строку по ней
-			if oper != "" && oper_count == 1 {
-				numbers := strings.SplitN(text, oper, 2)
-
-				//проверяем совпадение римских и арабских
-				if (!is_roman(numbers[0]) && is_roman(numbers[1])) || (is_roman(numbers[0]) && !is_roman(numbers[1])) {
-					fmt.Println("PANIC! Aram and roman mixed")
-				} else {
-					//если оба римские
-					if is_roman(numbers[0]) && is_roman(numbers[1]) {
-						roman_mode = true
-						roman_a, a = what_roman(numbers[0])
-						roman_b, b = what_roman(numbers[1])
-						if !roman_a || !roman_b {
-							fmt.Println("PANIC! roman number is not correct.")
-						}
-
-					} else { //если оба арабские
-						roman_mode = false
-						a, _ = strconv.Atoi(numbers[0])
-						b, _ = strconv.Atoi(numbers[1])
-					}
-
-				}
-
-				if a > 10 || b > 10 {
-					fmt.Printf("PANIC! Too big number.\n")
-				} else {
-					//вычисляем целый результат в зависимости от операции
-					switch oper {
-					case "+":
-						c = a + b
-					case "-":
-						c = a - b
-					case "*":
-						c = a * b
-					case "/":
-						c = a / b
-					}
-
-					//Если Римские, то проверяем, что результат положительный
-					if roman_mode {
-						if c > 0 {
-							//перевод результата в римские и вывод
-							fmt.Println(arab_to_roman(c))
-						} else {
-							fmt.Println("PANIC! Roman number <=0.")
-						}
-					} else { //формируем вывод для арабских чисел
-						fmt.Println(c)
-					}
-
-				}
-
-			} else {
-				fmt.Printf("PANIC! Uncorrect operation.\n")
-			}
-
-		} else {
-			fmt.Println("PANIC!", message)
 		}
+
+		// если нашли единственную операцию, то делим строку по ней
+		if oper == "" {
+			panic(errors.New("строка не является математической операцией"))
+		} else if oper_count > 1 {
+			panic(errors.New("формат математической операции не удовлетворяет заданию — два операнда и один оператор (+, -, /, *)"))
+		} else {
+
+			numbers := strings.SplitN(text, oper, 2)
+
+			//проверяем совпадение римских и арабских
+			if (!is_roman(numbers[0]) && is_roman(numbers[1])) || (is_roman(numbers[0]) && !is_roman(numbers[1])) {
+				panic(errors.New("используются одновременно разные системы счисления"))
+			} else {
+				//если оба римские
+				if is_roman(numbers[0]) && is_roman(numbers[1]) {
+					roman_mode = true
+					roman_a, a = what_roman(numbers[0])
+					roman_b, b = what_roman(numbers[1])
+					if !roman_a || !roman_b {
+						panic(errors.New("не удовлетворяет заданию — оба операнда должны быть целыми от 0 до 10"))
+					}
+
+				} else { //если оба арабские
+					roman_mode = false
+					a, _ = strconv.Atoi(numbers[0])
+					b, _ = strconv.Atoi(numbers[1])
+				}
+
+			}
+
+			if a > 10 || b > 10 {
+				panic(errors.New("не удовлетворяет заданию — оба операнда должны быть <= 10"))
+			} else {
+				//вычисляем целый результат в зависимости от операции
+				switch oper {
+				case "+":
+					c = a + b
+				case "-":
+					c = a - b
+				case "*":
+					c = a * b
+				case "/":
+					c = a / b
+				}
+
+				//Если Римские, то проверяем, что результат положительный
+				if roman_mode {
+					if c > 0 {
+						//перевод результата в римские и вывод
+						fmt.Println(arab_to_roman(c))
+					} else {
+						panic(errors.New("в римской системе нет отрицательных чисел"))
+					}
+				} else { //формируем вывод для арабских чисел
+					fmt.Println(c)
+				}
+
+			}
+
+		}
+
 	}
 
 }
